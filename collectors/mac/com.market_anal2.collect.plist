@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 매주 월요일 07:10(Mac 현지 시각) 공시실 수집. /Users/YOUR_NAME 은 설치 명령이 $HOME 으로 바꾼다. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.market_anal2.collect</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/YOUR_NAME/market_anal2/collectors/mac/weekly_collect.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>1</integer>
+    <key>Hour</key>
+    <integer>7</integer>
+    <key>Minute</key>
+    <integer>10</integer>
+  </dict>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>LANG</key>
+    <string>ko_KR.UTF-8</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/YOUR_NAME/Library/Logs/market_anal2/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOUR_NAME/Library/Logs/market_anal2/launchd.err.log</string>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
