@@ -9,7 +9,7 @@
 아코디언 `.panel`의 과거 판매기간과 `data-seqno`로 공시번호를 찾고, `https://www.kblife.co.kr/api/archive/archives/download/product-terms/{공시번호}/{box}`에서 box 1=사업방법서, box 2=약관을 받는다. 건강보험 보장성은 box 0(요약서)이 비어 있다. 2026/10/01판 현행 공시번호 501619071~107.
 
 ## 신한라이프
-`/hp/cdhi0030.do` 페이지의 함수를 그대로 쓴다. `dp.Ajax.send`에 `trId: 'co/wcms/nodeInfoList'`, `jsonData.method='selectAllListGoods'`, `meta05=<상품명>`을 넘기면 전체 판 목록이 온다. 판별 필드는 `meta07`(개시) `meta08`(종료) `meta09`(요약서) `meta10`(방법서) `meta11`(약관)이다. 파일 경로는 `/repo/...`가 아니라 **`/bizxpress/cdh/cdhi/gd/pr/__etc/<파일명>`** 으로 바꿔야 받아진다(`dp.Utils.getFileObject`가 하는 일). 목록 조회는 `co/wcms/nodeInfoListPage.pwkjson`.
+`/hp/cdhi0030.do` 페이지의 함수를 그대로 쓴다. `dp.Ajax.send`에 `trId: 'co/wcms/nodeInfoList'`, `jsonData.method='selectAllListGoods'`, `meta05=<상품명>`을 넘기면 전체 판 목록이 온다. 판별 필드는 `meta07`(개시) `meta08`(종료) `meta09`(요약서) `meta10`(방법서) `meta11`(약관)이다. 파일 경로는 `/repo/<wsId>`를 `/bizxpress`로 바꾸고 하위 폴더는 그대로 둔다(`dp.Utils.getFileObject`가 하는 일). 약관·방법서는 `__etc/`, 상품요약서는 `__media/` 아래에 있어서 `__etc`로 고정하면 요약서가 404가 난다(2026-10-14 확인). 목록 조회는 `co/wcms/nodeInfoListPage.pwkjson`.
 
 ## 미래에셋생명
 `POST https://life.miraeasset.com/micro/cmmnFileDown.do`에 `pathType=gongci_u1`, `filePath=/uploadwas/life/html/gongci/upload/1/`, `fileName`=`orgFileName`=`<상품명>_약관_20260101.pdf` 형식으로 보내면 바로 받아진다. 파일명 규칙이 일정해서 존재 여부 확인용 프로브로도 쓸 수 있다(없는 판은 29,950바이트 HTML이 온다). 2026-10-14 클라우드에서 `M-케어 건강보험 무배당_약관_20260101.pdf`(24.9MB, 2,876쪽)를 62초에 받는 것을 확인했다. 미래에셋 상품요약서 PDF는 이미지 스캔본이라 텍스트 추출이 안 된다.
