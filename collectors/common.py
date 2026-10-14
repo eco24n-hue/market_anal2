@@ -20,7 +20,7 @@ from pathlib import Path
 import requests
 
 DOC_TYPES = ("약관", "사업방법서", "상품요약서")
-BASELINE = "20260901"  # 이 날짜 이후 개시된 판만 받는다
+BASELINE = "20260901"  # 이 날짜에 유효했던 판과 그 이후 판을 받는다
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 
 
@@ -122,7 +122,9 @@ def run(company: str, list_editions, list_products=None, argv=None):
             report["errors"].append(f"상품목록 조회 실패: {e}")
 
     eds = list_editions(sess, targets)
-    eds = [e for e in eds if e.start >= a.since]
+    # 기준일에 유효했던 판(종료일이 기준일 이후이거나 판매중)과 그 이후 판을 받는다.
+    # 기준일 이후 개시분만 받으면 7월판이 현행인 상품은 기준선에서 빠진다.
+    eds = [e for e in eds if not e.end or e.end >= a.since]
     n = 0
     for e in eds:
         for d in e.docs:
