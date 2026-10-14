@@ -1,0 +1,380 @@
+<title>건강보험 표준담보 DB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 단일 문서 칼럼(문제→해결→데이터모델→완료조건 산출물). 산출물 표는 넓게, 각자 가로 스크롤 */
+:root{
+  --bg:#f6f7f8; --surface:#ffffff; --fg:#17212b; --muted:#5a6672; --line:#d9dee3;
+  --accent:#1d5c74; --accent-soft:#e3eef2;
+  --ok:#1f7a4d; --ok-soft:#e2f2e9; --no:#a03a2c; --no-soft:#f6e4e1; --warn:#8a5a00; --warn-soft:#f8eed7;
+  --font-body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161b; --surface:#182027; --fg:#e4e9ee; --muted:#98a4b0; --line:#2c3741;
+  --accent:#6fb4cf; --accent-soft:#1c3440;
+  --ok:#6cc79a; --ok-soft:#173226; --no:#e88b7c; --no-soft:#3a201c; --warn:#e2b35a; --warn-soft:#352a14;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161b; --surface:#182027; --fg:#e4e9ee; --muted:#98a4b0; --line:#2c3741;
+  --accent:#6fb4cf; --accent-soft:#1c3440;
+  --ok:#6cc79a; --ok-soft:#173226; --no:#e88b7c; --no-soft:#3a201c; --warn:#e2b35a; --warn-soft:#352a14;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.65;padding:0 20px}
+.wrap{max-width:1080px;margin:0 auto;padding-block:40px 80px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{text-wrap:balance;line-height:1.3;margin:0}
+h1{font-size:30px;font-weight:700;letter-spacing:-0.01em}
+h2{font-size:21px;font-weight:700}
+h3{font-size:16px;font-weight:600}
+p{margin:0;max-width:68ch}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.muted{color:var(--muted)}
+.mono,code{font-family:var(--font-mono);font-size:.88em}
+section{display:flex;flex-direction:column;gap:18px;min-width:0}
+.sec-head{display:flex;flex-direction:column;gap:6px;border-top:2px solid var(--fg);padding-top:14px}
+
+header{display:flex;flex-direction:column;gap:12px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted)}
+.notice{background:var(--warn-soft);color:var(--fg);border-left:3px solid var(--warn);padding:10px 14px;font-size:13.5px;max-width:none}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+
+/* pipeline */
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden}
+.steps li{padding:16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;min-width:0}
+.steps li:last-child{border-right:0}
+.steps .n{font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:500}
+.steps .t{font-weight:600}
+.steps .d{font-size:13px;color:var(--muted);line-height:1.55}
+@media (max-width:720px){.steps li{border-right:0;border-bottom:1px solid var(--line)}.steps li:last-child{border-bottom:0}}
+
+.rule{background:var(--accent-soft);border-radius:6px;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.rule .formula{font-family:var(--font-mono);font-size:13.5px;overflow-x:auto;white-space:nowrap}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+thead th{background:var(--bg);font-weight:600;font-size:12.5px;color:var(--muted);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+td.wrap{white-space:normal;min-width:220px}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+th.co{color:var(--fg);text-align:center;border-left:1px solid var(--line)}
+td.co{border-left:1px solid var(--line)}
+tr.grp td{background:var(--accent-soft);font-weight:600;color:var(--accent);font-size:13px;padding-block:6px}
+.sticky{position:sticky;left:0;background:var(--surface);z-index:1}
+thead .sticky{background:var(--bg);z-index:2}
+.ox{display:inline-block;min-width:26px;padding:1px 0;border-radius:4px;font-weight:700;font-family:var(--font-mono);text-align:center}
+.ox.o{background:var(--ok-soft);color:var(--ok)}
+.ox.x{background:var(--no-soft);color:var(--no)}
+.dash{color:var(--muted)}
+.tag{display:inline-block;font-size:11.5px;padding:0 6px;border-radius:3px;background:var(--accent-soft);color:var(--accent);font-weight:500}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-size:12.5px;color:var(--muted);margin-right:4px}
+.chip{font:inherit;font-size:13px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.chip:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--line)}
+.tab{font:inherit;font-size:14px;padding:10px 16px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+.cap{font-size:12.5px;color:var(--muted)}
+
+/* checklist */
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.checks li{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;padding:14px 18px;border-bottom:1px solid var(--line)}
+.checks li:last-child{border-bottom:0}
+.box{width:18px;height:18px;border:2px solid var(--accent);border-radius:3px;margin-top:3px}
+.checks a{color:var(--accent);font-size:13px;white-space:nowrap}
+@media (max-width:560px){.checks li{grid-template-columns:auto 1fr}.checks a{grid-column:2}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">건강보험 시장조사 · 기초서류 DB화</span>
+  <h1>건강보험 표준담보 DB 구축안</h1>
+  <p class="muted">기초서류의 보장담보를 담보명·보장 정의·분류코드 기준으로 읽어 세부담보와 표준담보로 정규화하고, 회사별 보장여부·지급조건·면책/감액/대기기간을 한 기준으로 비교한다.</p>
+  <div class="meta"><span>대상 서류: 사업방법서 · 보통/특별약관 · 산출방법서</span><span>금액 단위: 만원</span><span>작성: 2026-10-14</span></div>
+  <p class="notice">아래 산출물 표의 회사명(A~D사)과 수치는 <strong>구조를 보여주기 위한 예시</strong>입니다. 실제 기초서류를 추출하면 같은 형식으로 채워집니다.</p>
+</header>
+
+<!-- 1. 문제 정의 -->
+<section id="problem">
+  <div class="sec-head"><span class="eyebrow">1 · 문제 정의</span><h2>트렌드 파악 비용이 크고, 수기 DB화 오류가 많다</h2></div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>업계 트렌드 파악에 드는 리소스</h3>
+      <ul>
+        <li>회사마다 같은 보장을 다른 이름으로 판매(예: 뇌졸중진단비 / 뇌경색·뇌출혈진단비)해서 담보명만으로는 비교가 안 된다.</li>
+        <li>신상품·개정 때마다 약관 별표의 분류코드 범위를 다시 읽어야 한다.</li>
+        <li>담보 수가 많아(건강보험 1개 상품에 특약 100개 이상) 사람이 매번 전수 검토하기 어렵다.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>DB화 과정의 오류 지점</h3>
+      <ul>
+        <li><strong>지급금액·횟수</strong>: 최초 1회 / 연간 1회 / 매회, 가입금액 대비 % 표기가 섞여 있다.</li>
+        <li><strong>면책</strong>: 보장개시일 기준(90일)과 계약일 기준이 혼재한다.</li>
+        <li><strong>감액</strong>: 기간(1년·2년)과 지급률(50%)이 문장 하나에 들어 있어 누락이 잦다.</li>
+        <li><strong>대기기간</strong>: 입원 n일 초과, 진단 후 생존 n일 등 지급요건이 약관 본문 곳곳에 흩어져 있다.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2. 해결방안 -->
+<section id="solution">
+  <div class="sec-head"><span class="eyebrow">2 · 해결방안</span><h2>정의·분류코드 기반 2단계 정규화</h2></div>
+  <p>담보명은 회사가 정하는 마케팅 명칭이므로 키로 쓰지 않는다. <strong>보장 정의(지급사유)</strong>와 <strong>분류코드</strong>를 읽어 세부담보를 확정하고, 세부담보의 공통 속성으로 표준담보를 묶는다.</p>
+
+  <ol class="steps">
+    <li><span class="n">STEP 1</span><span class="t">담보 추출</span><span class="d">담보명, 보장 정의, 분류코드(KCD·수술분류표), 지급금액·횟수, 면책·감액·대기 문구와 원문 위치(서류·조·페이지)</span></li>
+    <li><span class="n">STEP 2</span><span class="t">정규화</span><span class="d">정의 문장의 표현 차이 제거, 분류코드를 개별 코드 집합으로 전개(C00–C97 → C00, C01 …)</span></li>
+    <li><span class="n">STEP 3</span><span class="t">세부담보명 부여</span><span class="d">매칭키가 같으면 회사가 달라도 같은 세부담보명을 쓴다</span></li>
+    <li><span class="n">STEP 4</span><span class="t">표준담보명 부여</span><span class="d">표준담보 기준 컬럼(보장사건·질병군·지급형태)으로 세부담보를 묶는다</span></li>
+    <li><span class="n">STEP 5</span><span class="t">검증</span><span class="d">규칙 검사 후 예외 건만 원문과 대조</span></li>
+  </ol>
+
+  <div class="rule">
+    <h3>세부담보 동일성 규칙</h3>
+    <div class="formula">match_key = hash( 보장사건 + 정규화된_보장정의 + 정렬된_분류코드_집합 )</div>
+    <p style="font-size:14px">회사별 담보의 보장 정의와 분류코드가 같으면 같은 <code>match_key</code>를 가지므로, 같은 세부담보명과 표준담보명이 자동으로 붙는다. 코드 범위가 하나라도 다르면(예: 뇌졸중에 I64 포함 여부) 별도 세부담보로 분리한다.</p>
+  </div>
+
+  <h3>표준담보 기준 컬럼</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>기준 컬럼</th><th>값 예시</th><th>판단 근거</th></tr></thead>
+    <tbody>
+      <tr><td>보장사건</td><td>진단 · 수술 · 입원 · 치료 · 통원</td><td class="wrap">지급사유 문장의 동사(“진단확정되었을 때”, “수술을 받았을 때”)</td></tr>
+      <tr><td>질병군</td><td>암 · 유사암 · 뇌혈관 · 허혈성심장 · 질병 전체</td><td class="wrap">분류코드 집합이 속하는 상위 범주</td></tr>
+      <tr><td>지급형태</td><td>정액 · 일당 · 종별 정액 · 실손</td><td class="wrap">지급금액 표의 구조(1회 정액, 1일당, 1~5종 차등)</td></tr>
+      <tr><td>범위 수식어</td><td>고액 · 소액 · 특정 · 주요</td><td class="wrap">같은 질병군 안에서 분류코드가 부분집합인지 여부(세부담보명에만 반영)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap">표준담보명 = 질병군 + 보장사건 + 지급형태. 예: 뇌혈관 + 진단 + 정액 → “뇌혈관질환진단비”. 그 아래 세부담보는 범위 수식어와 분류코드로 구분한다.</p>
+
+  <h3>DB 테이블 구조</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>테이블</th><th>주요 컬럼</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">std_coverage</td><td class="wrap mono">std_id, 표준담보명, 보장사건, 질병군, 지급형태</td><td class="wrap">표준담보 마스터</td></tr>
+      <tr><td class="mono">detail_coverage</td><td class="wrap mono">detail_id, std_id, 세부담보명, 정의_정규화, 분류코드_집합, match_key</td><td class="wrap">세부담보 마스터. match_key 유일</td></tr>
+      <tr><td class="mono">company_coverage</td><td class="wrap mono">회사, 상품코드, 판매개시일, 원담보명, detail_id, 원문위치</td><td class="wrap">회사 원담보 → 세부담보 매핑</td></tr>
+      <tr><td class="mono">pay_term</td><td class="wrap mono">company_coverage_id, 지급금액, 지급기준(정액/%), 지급횟수코드</td><td class="wrap">지급금액·횟수</td></tr>
+      <tr><td class="mono">limit_term</td><td class="wrap mono">company_coverage_id, 면책일수, 면책기산점, 감액기간, 감액률, 대기조건</td><td class="wrap">면책·감액·대기기간</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>오류를 줄이는 입력 규칙</h3>
+      <ul>
+        <li>지급횟수는 코드로만 입력: <code>FIRST1</code>(최초 1회), <code>YEAR1</code>(연간 1회), <code>EACH</code>(매회), <code>DAY</code>(1일당)</li>
+        <li>면책은 일수와 기산점(보장개시일/계약일)을 분리 저장</li>
+        <li>감액은 기간(개월)과 지급률(%)을 분리 저장. 문구 원문도 함께 보관</li>
+        <li>금액은 만원 단위 정수, 가입금액 대비 비율이면 기준금액을 별도 컬럼에</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>자동 검증 규칙</h3>
+      <ul>
+        <li>같은 match_key 안에서 세부담보명이 2개 이상이면 오류</li>
+        <li>암 계열 담보에 면책 없음 → 확인 대상으로 표시</li>
+        <li>감액기간 ≥ 보험기간, 감액률 ∉ (0,100) → 오류</li>
+        <li>유사암 진단비 &gt; 일반암 진단비 → 확인 대상으로 표시</li>
+        <li>분류코드가 어느 세부담보에도 매칭되지 않으면 신규 세부담보 후보로 등록</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 완료조건 -->
+<section id="done">
+  <div class="sec-head"><span class="eyebrow">3 · 완료조건</span><h2>네 가지 산출물이 나오면 완료</h2></div>
+  <ul class="checks">
+    <li><span class="box" aria-hidden="true"></span><span><strong>업계의 모든 표준담보와 세부담보 목록</strong><br><span class="muted" style="font-size:13.5px">표준담보 아래 세부담보, 보장 정의, 분류코드를 나열</span></span><a href="#out">산출물 ① 보기</a></li>
+    <li><span class="box" aria-hidden="true"></span><span><strong>회사별 보장여부 O/X 표</strong><br><span class="muted" style="font-size:13.5px">세부담보 × 회사 매트릭스</span></span><a href="#out">산출물 ② 보기</a></li>
+    <li><span class="box" aria-hidden="true"></span><span><strong>회사별 지급금액 및 지급횟수 표</strong><br><span class="muted" style="font-size:13.5px">대표 가입금액 기준, 횟수는 표준 코드로 표시</span></span><a href="#out">산출물 ③ 보기</a></li>
+    <li><span class="box" aria-hidden="true"></span><span><strong>회사별 면책·감액·대기기간 표</strong><br><span class="muted" style="font-size:13.5px">면책일수, 감액기간·감액률, 대기 조건</span></span><a href="#out">산출물 ④ 보기</a></li>
+  </ul>
+</section>
+
+<!-- 산출물 -->
+<section id="out">
+  <div class="sec-head"><span class="eyebrow">산출물 예시</span><h2>완료조건별 표 양식</h2></div>
+  <p class="muted" style="font-size:14px">예시 데이터입니다. 표준담보로 거르면 네 표가 모두 함께 걸러집니다.</p>
+
+  <div class="controls" id="filters"><label>표준담보</label></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-list" aria-selected="true" aria-controls="panel">① 담보 목록</button>
+    <button class="tab" role="tab" id="tab-ox" aria-selected="false" aria-controls="panel">② 보장여부</button>
+    <button class="tab" role="tab" id="tab-pay" aria-selected="false" aria-controls="panel">③ 지급금액·횟수</button>
+    <button class="tab" role="tab" id="tab-limit" aria-selected="false" aria-controls="panel">④ 면책·감액·대기</button>
+  </div>
+  <div id="panel" role="tabpanel"></div>
+  <p class="cap" id="caption"></p>
+
+  <h3 style="margin-top:12px">회사 원담보명 → 세부담보 매핑 예시</h3>
+  <p style="font-size:14px">담보명이 달라도 정의와 분류코드가 같으면 하나의 세부담보로 합쳐진다.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>회사</th><th>원담보명(기초서류)</th><th>분류코드</th><th>세부담보명</th><th>표준담보명</th></tr></thead>
+    <tbody>
+      <tr><td>A사</td><td>뇌졸중진단비</td><td class="mono">I60–I63, I65–I66</td><td rowspan="3" style="vertical-align:middle"><strong>뇌졸중진단비</strong></td><td rowspan="3" style="vertical-align:middle">뇌혈관질환진단비</td></tr>
+      <tr><td>B사</td><td>뇌출혈·뇌경색증진단비</td><td class="mono">I60–I63, I65–I66</td></tr>
+      <tr><td>C사</td><td>뇌졸중(뇌출혈·뇌경색) 진단특약</td><td class="mono">I60–I63, I65–I66</td></tr>
+      <tr><td>D사</td><td>뇌졸중진단비</td><td class="mono">I60–I64, I65–I66</td><td><strong>뇌졸중진단비(I64 포함)</strong> <span class="tag">분리</span></td><td>뇌혈관질환진단비</td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap">D사는 이름이 같아도 I64(출혈 또는 경색으로 명시되지 않은 뇌졸중)를 포함하므로 match_key가 달라 별도 세부담보가 된다.</p>
+</section>
+
+</div>
+
+<script>
+const COS = ["A사","B사","C사","D사"];
+// 예시 데이터. o: 보장여부, amt: 지급금액(만원), cnt: 지급횟수, ex: 면책, red: 감액, wait: 대기
+const F = (amt,cnt,ex,red,wait)=>({o:1,amt,cnt,ex,red,wait});
+const X = {o:0};
+const DATA = [
+ {std:"암진단비", event:"진단", group:"암", pay:"정액", items:[
+  {d:"일반암진단비", def:"보장개시일 이후 암(유사암 제외)으로 진단확정", code:"C00–C97 (C44·C73 제외)",
+   by:[F(3000,"최초 1회","90일","1년 50%","-"),F(5000,"최초 1회","90일","1년 50%","-"),F(3000,"최초 1회","90일","1년 50%","-"),F(2000,"최초 1회","90일","2년 50%","-")]},
+  {d:"고액암진단비", def:"특정 고액치료비 암으로 진단확정", code:"C40–C41, C70–C72, C91–C95 등",
+   by:[F(2000,"최초 1회","90일","1년 50%","-"),X,F(3000,"최초 1회","90일","1년 50%","-"),X]},
+ ]},
+ {std:"유사암진단비", event:"진단", group:"유사암", pay:"정액", items:[
+  {d:"갑상선암진단비", def:"갑상선의 악성신생물로 진단확정", code:"C73",
+   by:[F(600,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-"),F(600,"최초 1회","없음","1년 50%","-"),F(400,"최초 1회","90일","1년 50%","-")]},
+  {d:"기타피부암진단비", def:"기타 피부의 악성신생물로 진단확정", code:"C44",
+   by:[F(600,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-"),F(600,"최초 1회","없음","1년 50%","-"),F(400,"최초 1회","없음","1년 50%","-")]},
+  {d:"제자리암진단비", def:"제자리신생물로 진단확정", code:"D00–D09",
+   by:[F(600,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-"),X,F(400,"최초 1회","없음","1년 50%","-")]},
+  {d:"경계성종양진단비", def:"행동양식 불명 또는 미상의 신생물로 진단확정", code:"D37–D48",
+   by:[F(600,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-"),X,F(400,"최초 1회","없음","1년 50%","-")]},
+ ]},
+ {std:"뇌혈관질환진단비", event:"진단", group:"뇌혈관", pay:"정액", items:[
+  {d:"뇌혈관질환진단비", def:"뇌혈관질환으로 진단확정", code:"I60–I69",
+   by:[F(1000,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-"),F(500,"최초 1회","없음","1년 50%","-"),X]},
+  {d:"뇌졸중진단비", def:"뇌출혈 또는 뇌경색증으로 진단확정", code:"I60–I63, I65–I66",
+   by:[F(2000,"최초 1회","없음","1년 50%","-"),F(2000,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-"),X]},
+  {d:"뇌졸중진단비(I64 포함)", def:"뇌출혈, 뇌경색증 또는 상세불명 뇌졸중으로 진단확정", code:"I60–I64, I65–I66",
+   by:[X,X,X,F(2000,"최초 1회","없음","1년 50%","-")]},
+  {d:"뇌출혈진단비", def:"뇌출혈로 진단확정", code:"I60–I62",
+   by:[F(3000,"최초 1회","없음","1년 50%","-"),X,F(2000,"최초 1회","없음","1년 50%","-"),F(3000,"최초 1회","없음","1년 50%","-")]},
+ ]},
+ {std:"허혈성심장질환진단비", event:"진단", group:"허혈성심장", pay:"정액", items:[
+  {d:"허혈성심장질환진단비", def:"허혈성심장질환으로 진단확정", code:"I20–I25",
+   by:[F(1000,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-"),F(500,"최초 1회","없음","1년 50%","-"),F(1000,"최초 1회","없음","1년 50%","-")]},
+  {d:"급성심근경색증진단비", def:"급성심근경색증으로 진단확정", code:"I21–I23",
+   by:[F(2000,"최초 1회","없음","1년 50%","-"),F(3000,"최초 1회","없음","1년 50%","-"),F(2000,"최초 1회","없음","1년 50%","-"),X]},
+ ]},
+ {std:"질병수술비", event:"수술", group:"질병 전체", pay:"정액·종별", items:[
+  {d:"질병수술비", def:"질병 치료를 직접 목적으로 수술", code:"수술 정의(약관 별표)",
+   by:[F(30,"매회","없음","없음","-"),F(20,"매회","없음","없음","-"),F(30,"매회","없음","없음","-"),X]},
+  {d:"질병 1–5종수술비", def:"질병으로 1–5종 수술분류표의 수술", code:"1–5종 수술분류표",
+   by:[F("10 / 30 / 50 / 100 / 300","매회","없음","없음","-"),X,F("20 / 40 / 80 / 200 / 600","매회","없음","없음","-"),F("10 / 30 / 50 / 100 / 300","매회","없음","없음","-")]},
+ ]},
+ {std:"질병입원일당", event:"입원", group:"질병 전체", pay:"일당", items:[
+  {d:"질병입원일당(1일 이상)", def:"질병 치료 목적 1일 이상 계속 입원", code:"입원 정의(약관)",
+   by:[F(3,"1일당 (180일 한도)","없음","없음","없음"),F(2,"1일당 (120일 한도)","없음","없음","없음"),X,F(3,"1일당 (180일 한도)","없음","없음","없음")]},
+  {d:"질병입원일당(4일 이상)", def:"질병 치료 목적 4일 이상 계속 입원 시 3일 초과분", code:"입원 정의(약관)",
+   by:[X,F(5,"1일당 (120일 한도)","없음","없음","3일 초과"),F(4,"1일당 (120일 한도)","없음","없음","3일 초과"),X]},
+ ]},
+ {std:"항암치료비", event:"치료", group:"암", pay:"정액", items:[
+  {d:"표적항암약물허가치료비", def:"암 치료 목적 표적항암제(식약처 허가) 투여", code:"C00–C97 + 약제 허가 요건",
+   by:[F(5000,"최초 1회","90일","1년 50%","-"),F(3000,"최초 1회","90일","1년 50%","-"),F(5000,"연간 1회 (5회 한도)","90일","없음","-"),X]},
+  {d:"항암방사선치료비", def:"암 치료 목적 방사선 치료", code:"C00–C97",
+   by:[F(500,"최초 1회","90일","1년 50%","-"),F(300,"연간 1회","90일","1년 50%","-"),F(500,"최초 1회","90일","1년 50%","-"),F(300,"최초 1회","90일","1년 50%","-")]},
+  {d:"카티(CAR-T)항암약물허가치료비", def:"CAR-T 세포치료제 투여", code:"C81–C96 + 약제 허가 요건",
+   by:[F(5000,"최초 1회","90일","없음","-"),X,X,X]},
+ ]},
+];
+
+let curStd = "전체", curTab = "list";
+const esc = s => String(s);
+const cell = (v, cls="") => `<td class="${cls}">${v===undefined||v==="-"?'<span class="dash">–</span>':esc(v)}</td>`;
+const fmtAmt = a => typeof a==="number" ? a.toLocaleString("ko-KR") : a;
+
+function groups(){ return curStd==="전체" ? DATA : DATA.filter(g=>g.std===curStd); }
+
+function render(){
+  const gs = groups();
+  let html = "", cap = "";
+  if(curTab==="list"){
+    html = `<table><thead><tr><th class="sticky">세부담보명</th><th>표준담보명</th><th>보장사건</th><th>질병군</th><th>지급형태</th><th>보장 정의(요약)</th><th>분류코드</th></tr></thead><tbody>`;
+    gs.forEach(g=>{ g.items.forEach(it=>{
+      html += `<tr><td class="sticky"><strong>${it.d}</strong></td><td>${g.std}</td><td>${g.event}</td><td>${g.group}</td><td>${g.pay}</td><td class="wrap">${it.def}</td><td class="mono">${it.code}</td></tr>`;
+    });});
+    html += "</tbody></table>";
+    const n = gs.reduce((s,g)=>s+g.items.length,0);
+    cap = `표준담보 ${gs.length}개 · 세부담보 ${n}개`;
+  } else if(curTab==="ox"){
+    html = `<table><thead><tr><th class="sticky">세부담보명</th><th>분류코드</th>${COS.map(c=>`<th class="co">${c}</th>`).join("")}<th class="c">보장 회사 수</th></tr></thead><tbody>`;
+    gs.forEach(g=>{
+      html += `<tr class="grp"><td class="sticky" colspan="${COS.length+3}" style="background:var(--accent-soft)">${g.std}</td></tr>`;
+      g.items.forEach(it=>{
+        const k = it.by.filter(b=>b.o).length;
+        html += `<tr><td class="sticky">${it.d}</td><td class="mono">${it.code}</td>${it.by.map(b=>`<td class="c co"><span class="ox ${b.o?'o':'x'}">${b.o?'O':'X'}</span></td>`).join("")}<td class="c">${k} / ${COS.length}</td></tr>`;
+      });
+    });
+    html += "</tbody></table>";
+    cap = "O: 해당 세부담보(동일 정의·분류코드)를 판매 중 · X: 미판매 또는 정의·코드가 달라 다른 세부담보로 분류됨";
+  } else if(curTab==="pay"){
+    html = `<table><thead><tr><th class="sticky" rowspan="2">세부담보명</th>${COS.map(c=>`<th class="co" colspan="2">${c}</th>`).join("")}</tr><tr>${COS.map(()=>`<th class="r co">금액(만원)</th><th>횟수</th>`).join("")}</tr></thead><tbody>`;
+    gs.forEach(g=>{
+      html += `<tr class="grp"><td class="sticky" colspan="${COS.length*2+1}" style="background:var(--accent-soft)">${g.std}</td></tr>`;
+      g.items.forEach(it=>{
+        html += `<tr><td class="sticky">${it.d}</td>${it.by.map(b=> b.o ? `<td class="r co">${fmtAmt(b.amt)}</td><td>${b.cnt}</td>` : `<td class="r co"><span class="ox x">X</span></td><td><span class="dash">–</span></td>`).join("")}</tr>`;
+      });
+    });
+    html += "</tbody></table>";
+    cap = "금액은 대표 가입금액 기준. 1–5종 수술비는 1종 / 2종 / 3종 / 4종 / 5종 순.";
+  } else {
+    html = `<table><thead><tr><th class="sticky" rowspan="2">세부담보명</th>${COS.map(c=>`<th class="co" colspan="3">${c}</th>`).join("")}</tr><tr>${COS.map(()=>`<th class="co">면책</th><th>감액</th><th>대기</th>`).join("")}</tr></thead><tbody>`;
+    gs.forEach(g=>{
+      html += `<tr class="grp"><td class="sticky" colspan="${COS.length*3+1}" style="background:var(--accent-soft)">${g.std}</td></tr>`;
+      g.items.forEach(it=>{
+        html += `<tr><td class="sticky">${it.d}</td>${it.by.map(b=> b.o ? cell(b.ex,"co")+cell(b.red)+cell(b.wait) : `<td class="co"><span class="ox x">X</span></td><td></td><td></td>`).join("")}</tr>`;
+      });
+    });
+    html += "</tbody></table>";
+    cap = "면책: 보장개시 전 지급하지 않는 기간(기산점 계약일) · 감액: 기간 내 지급률 축소(예: 1년 50%) · 대기: 지급 요건 충족까지의 기간(예: 입원 3일 초과)";
+  }
+  document.getElementById("panel").innerHTML = `<div class="tbl-wrap">${html}</div>`;
+  document.getElementById("caption").textContent = cap;
+}
+
+// filters
+const fbox = document.getElementById("filters");
+["전체", ...DATA.map(g=>g.std)].forEach(name=>{
+  const b = document.createElement("button");
+  b.className="chip"; b.type="button"; b.textContent=name; b.id="f-"+name;
+  b.setAttribute("aria-pressed", name===curStd);
+  b.addEventListener("click",()=>{
+    curStd=name;
+    fbox.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", c.textContent===name));
+    render();
+  });
+  fbox.appendChild(b);
+});
+// tabs
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click",()=>{
+    curTab = t.id.replace("tab-","");
+    document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected", x===t));
+    try{ localStorage.setItem("covTab", curTab); }catch(e){}
+    render();
+  });
+});
+try{ const s = localStorage.getItem("covTab"); if(s && document.getElementById("tab-"+s)){ curTab=s; document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected", x.id==="tab-"+s)); } }catch(e){}
+render();
+</script>
