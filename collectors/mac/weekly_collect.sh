@@ -1,17 +1,19 @@
 #!/bin/bash
-# 하나생명·KB라이프·동양생명 공시실 주간 수집 (사용자 Mac 전용)
-# - 코드 저장소(market_anal2)와 문서 저장소(market_anal2-docs)를 최신으로 당긴 뒤
-# - hana.py / kb.py / dongyang.py / heungkuk.py 를 문서 저장소 루트(--root)로 돌리고
-# - 기초서류·manifest 에 바뀐 것이 있을 때만 문서 저장소에 commit + push 한다.
+# 공시실 주간 수집 (사용자 Mac 전용)
+# - 수집기를 기초서류 폴더(DOCS_DIR, 기본: iCloud work 폴더)를 루트로 돌려 기초서류/<회사>/<개정일>/ 에 받고
+# - pipeline/ingest.py 로 폴더 전체를 다시 읽어 지난 실행 대비 새 파일·개정 파일을 보고한다.
+# - USE_GIT=1 이고 DOCS_DIR 이 git 저장소일 때만 commit + push 한다(기본은 하지 않음).
 # 수동 실행:  bash ~/market_anal2/collectors/mac/weekly_collect.sh            (실제 수집)
 #             DRY_RUN=1 bash ~/market_anal2/collectors/mac/weekly_collect.sh  (목록만, 커밋 안 함)
 
 # ───────── 설정 (필요하면 여기만 고친다) ─────────
 CODE_DIR="${CODE_DIR:-$HOME/market_anal2}"            # eco24n-hue/market_anal2 클론 위치
-DOCS_DIR="${DOCS_DIR:-$HOME/market_anal2-docs}"       # eco24n-hue/market_anal2-docs 클론 위치
+DOCS_DIR="${DOCS_DIR:-$HOME/Library/Mobile Documents/com~apple~CloudDocs/work}"  # 기초서류 폴더(iCloud work)
+STATE_DIR="${STATE_DIR:-$CODE_DIR/state}"             # ingest 결과(catalog·주간 보고) 위치
+USE_GIT="${USE_GIT:-0}"                               # 1이면 DOCS_DIR 저장소에 commit + push
 PYTHON="${PYTHON:-/usr/bin/python3}"                  # requests 를 설치한 python3
 LOG_DIR="${LOG_DIR:-$HOME/Library/Logs/market_anal2}" # 실행 기록
-COMPANIES="${COMPANIES:-hana kb dongyang heungkuk}"                       # 돌릴 수집기(파일 이름에서 .py 뺀 것)
+COMPANIES="${COMPANIES:-hana kb dongyang heungkuk shinhan mirae}"  # 돌릴 수집기(파일 이름에서 .py 뺀 것)
 GIT_BRANCH="${GIT_BRANCH:-main}"                      # 문서 저장소에 push 할 브랜치
 # KB라이프 상품공시 목록 페이지 주소(브라우저 주소창에서 복사, 여러 개면 쉼표). 비우면 kb 가 실패한다.
 export KB_LIST_URLS="${KB_LIST_URLS:-}"
@@ -36,12 +38,12 @@ fi
 trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 
 echo "=== 공시실 수집 시작 $STAMP ==="
-for d in "$CODE_DIR" "$DOCS_DIR"; do
-  [ -d "$d/.git" ] || { echo "저장소가 없습니다: $d (README 1단계 참고)"; exit 1; }
-done
-
+[ -d "$CODE_DIR/.git" ] || { echo "코드 저장소가 없습니다: $CODE_DIR (README 1단계 참고)"; exit 1; }
+[ -d "$DOCS_DIR" ] || { echo "기초서류 폴더가 없습니다: $DOCS_DIR (DOCS_DIR 설정 확인)"; exit 1; }
 git -C "$CODE_DIR" pull --ff-only || echo "경고: 코드 저장소 pull 실패 — 기존 코드로 계속합니다."
-git -C "$DOCS_DIR" pull --ff-only || { echo "문서 저장소 pull 실패 — 충돌을 먼저 해결하세요."; exit 1; }
+if [ "$USE_GIT" = "1" ] && [ -d "$DOCS_DIR/.git" ]; then
+  git -C "$DOCS_DIR" pull --ff-only || { echo "문서 저장소 pull 실패 — 충돌을 먼저 해결하세요."; exit 1; }
+fi
 
 FAILED=""
 EXTRA=""
@@ -62,8 +64,15 @@ for c in $COMPANIES; do
   fi
 done
 
+if [ "${DRY_RUN:-0}" != "1" ]; then
+  echo "--- 기초서류 폴더 점검(ingest) ---"
+  "$PYTHON" "$CODE_DIR/pipeline/ingest.py" --docs-root "$DOCS_DIR" --state "$STATE_DIR" || FAILED="$FAILED ingest"
+fi
+
 if [ "${DRY_RUN:-0}" = "1" ]; then
   echo "DRY_RUN — 커밋하지 않습니다."
+elif [ "$USE_GIT" != "1" ] || [ ! -d "$DOCS_DIR/.git" ]; then
+  echo "git 사용 안 함(USE_GIT=$USE_GIT) — 파일은 $DOCS_DIR 에 저장됨."
 else
   cd "$DOCS_DIR" || exit 1
   for p in 기초서류 manifest; do [ -e "$p" ] && git add -A -- "$p"; done
