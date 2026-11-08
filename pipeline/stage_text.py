@@ -16,7 +16,7 @@ def safe(s): return re.sub(r'[\\/:*?"<>|]', '_', s)[:100]
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('--state', default='state'); ap.add_argument('--out', default='work/txt')
-    ap.add_argument('--since', default='', help='이 날짜 이후 개정판만 (YYYYMMDD)')
+    ap.add_argument('--since', default='', help='이 날짜에 유효했던 판과 그 이후 판만 (YYYYMMDD)')
     ap.add_argument('--companies', default='', help='쉼표로 구분한 회사명. 비우면 전체')
     a = ap.parse_args(argv)
     if not shutil.which('pdftotext'):
@@ -26,16 +26,28 @@ def main(argv=None):
     done_p = Path(a.state) / 'stage_done.json'
     done = json.loads(done_p.read_text('utf-8')) if done_p.exists() else {}
     cos = {c for c in a.companies.split(',') if c}
+    # 회사·상품·문서별로 기준일 이후 판 전부 + 기준일 직전의 최신 판(기준일에 유효했던 판)을 남긴다
+    keep = set()
+    groups = {}
+    for f in cat['files']:
+        groups.setdefault((f['company'], f['product'], f['doc_type']), []).append(f)
+    for fs in groups.values():
+        before = [f for f in fs if a.since and f['edition'] < a.since]
+        if before:
+            last = max(f['edition'] for f in before)
+            keep.update(id(f) for f in before if f['edition'] == last)
+        keep.update(id(f) for f in fs if not a.since or f['edition'] >= a.since)
     n = 0
     for f in cat['files']:
         if cos and f['company'] not in cos: continue
-        if a.since and f['edition'] < a.since: continue
+        if id(f) not in keep: continue
         name = f"기초서류__{f['company']}__{f['edition']}__{safe(f['product'])}__{f['doc_type']}.txt"
-        if done.get(f['sha256']) == name and (out / name).exists(): continue
+        key = f"{f['sha256']}|{name}"
+        if done.get(key) and (out / name).exists(): continue
         r = subprocess.run(['pdftotext', '-layout', str(root / f['path']), str(out / name)], capture_output=True)
         if r.returncode != 0:
             print(f"[실패] {f['path']}: {r.stderr.decode('utf-8', 'ignore')[:200]}", file=sys.stderr); continue
-        done[f['sha256']] = name; n += 1
+        done[key] = True; n += 1
     done_p.write_text(json.dumps(done, ensure_ascii=False, indent=1), 'utf-8')
     print(f'텍스트 변환 {n}개 → {out}')
 
