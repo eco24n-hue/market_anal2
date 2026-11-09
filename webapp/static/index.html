@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>건강보험 담보 레이더</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="page" id="app" hidden>
+  <header class="topbar">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span class="eyebrow">기초서류 기반 건강보험 담보 비교</span>
+      <h1>건강보험 담보 레이더</h1>
+    </div>
+    <div class="controls">
+      <label for="snap">기준일</label><select id="snap"></select>
+      <a class="btn ghost" href="#update" id="go-update">업데이트</a>
+    </div>
+  </header>
+
+  <section id="summary"><div class="kpis" id="kpis"></div></section>
+
+  <section id="compare">
+    <div class="sec-head"><span class="eyebrow">회사별 비교</span><h2>표준·세부담보 비교</h2></div>
+    <div class="controls" id="filters"><label>대분류</label></div>
+    <div class="controls">
+      <label for="q">검색</label><input id="q" type="search" placeholder="세부담보·표준담보" style="flex:1;max-width:320px">
+      <label><input type="checkbox" id="common"> 전 회사 공통만</label>
+    </div>
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-tab="list" aria-selected="true">담보 목록</button>
+      <button class="tab" role="tab" data-tab="ox" aria-selected="false">보장여부</button>
+      <button class="tab" role="tab" data-tab="uw" aria-selected="false">심사기준</button>
+      <button class="tab" role="tab" data-tab="pay" aria-selected="false">지급금액·횟수</button>
+      <button class="tab" role="tab" data-tab="exempt" aria-selected="false">면책</button>
+      <button class="tab" role="tab" data-tab="reduce" aria-selected="false">감액</button>
+      <button class="tab" role="tab" data-tab="wait" aria-selected="false">대기</button>
+      <button class="tab" role="tab" data-tab="rows" aria-selected="false">상품별 세부담보</button>
+      <button class="tab" role="tab" data-tab="diff" aria-selected="false">기간별 변경</button>
+    </div>
+    <div id="panel" role="tabpanel"><p class="muted">불러오는 중…</p></div>
+    <p class="cap" id="caption"></p>
+  </section>
+
+  <section id="update">
+    <div class="sec-head"><span class="eyebrow">기초서류 업데이트</span><h2>개정된 기초서류 읽어오기</h2></div>
+    <p class="muted" style="font-size:14px">기초서류 폴더: <code id="root"></code></p>
+    <div class="controls">
+      <button type="button" class="btn" id="run">실행</button>
+      <label><input type="checkbox" id="dl"> 공시실에서 새 개정판 먼저 다운로드</label>
+      <label for="since">기준일</label><input id="since" type="text" value="20260901" inputmode="numeric" style="width:7.5em">
+      <span id="run-state" class="muted" style="font-size:13px"></span>
+    </div>
+    <div id="run-result"></div>
+    <details><summary class="muted" style="font-size:13px;cursor:pointer">실행 기록</summary><pre class="log" id="run-log"></pre></details>
+  </section>
+
+  <section id="files">
+    <div class="sec-head"><span class="eyebrow">내려받기</span><h2>DB와 엑셀</h2></div>
+    <ul id="downloads" style="margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px"></ul>
+  </section>
+</div>
+
+<form class="login" id="login" hidden>
+  <h1 style="font-size:24px">건강보험 담보 레이더</h1>
+  <label for="pw">비밀번호</label><input id="pw" type="password" autocomplete="current-password">
+  <button class="btn" type="submit">로그인</button>
+  <p class="muted" id="login-msg" style="font-size:13px"></p>
+</form>
+<script src="/app.js"></script>
+</body>
+</html>
