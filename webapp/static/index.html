@@ -52,9 +52,11 @@
     <div class="controls">
       <button type="button" class="btn" id="run">실행</button>
       <label><input type="checkbox" id="dl"> 공시실에서 새 개정판 먼저 다운로드</label>
+      <label><input type="checkbox" id="ai"> AI 분석·새 기준일 DB 만들기 <span class="muted">(Claude API 비용 발생)</span></label>
       <label for="since">기준일</label><input id="since" type="text" value="20260901" inputmode="numeric" style="width:7.5em">
       <span id="run-state" class="muted" style="font-size:13px"></span>
     </div>
+    <p class="muted" id="ai-est" style="font-size:13px" hidden></p>
     <div id="run-result"></div>
     <details><summary class="muted" style="font-size:13px;cursor:pointer">실행 기록</summary><pre class="log" id="run-log"></pre></details>
   </section>

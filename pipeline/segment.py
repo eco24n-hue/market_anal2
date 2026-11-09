@@ -16,7 +16,13 @@ for f in sorted(glob.glob(T + "/*약관.txt")):
         # 특약 경계 표지가 회사마다 달라서, 규칙을 만든 회사만 나눈다
         print(f'[건너뜀] {co}: 특약 분할 규칙 없음 ({os.path.basename(f)[:60]})', file=sys.stderr)
         continue
-    pages = open(f, encoding='utf-8').read().split('\f')
+    raw = open(f, encoding='utf-8').read()
+    if co == '신한라이프':
+        # 약관 끝의 [별첨2] 분류표 모음은 특약이 아니다. 마지막 '표1 ｜ 재해분류표' 부터 잘라 낸다(refs.py 가 따로 저장)
+        cut = [m.start() for m in re.finditer(r'(?m)^\s*표\s*1\s*[｜|]\s*재해분류표', raw)]
+        if cut:
+            raw = raw[:raw.rfind('\f', 0, cut[-1]) + 1 if raw.rfind('\f', 0, cut[-1]) >= 0 else cut[-1]]
+    pages = raw.split('\f')
     cur, buf = None, []
     def flush():
         if cur and buf:

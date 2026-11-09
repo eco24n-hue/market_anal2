@@ -39,7 +39,7 @@ if PASSWORD and not SECRET:
     raise SystemExit("APP_PASSWORD 를 쓰려면 APP_SECRET 도 설정해야 합니다.")
 
 app = FastAPI(title="건강보험 담보 레이더", docs_url=None, redoc_url=None)
-runner = Runner(DOCS_ROOT, STATE, WORK)
+runner = Runner(DOCS_ROOT, STATE, WORK, DB_PATH)
 
 
 # ---------- 로그인 ----------
@@ -157,9 +157,15 @@ async def start_run(request: Request):
         raise HTTPException(400, "기준일은 YYYYMMDD 8자리로 입력하세요")
     if not os.path.isdir(DOCS_ROOT):
         raise HTTPException(400, f"기초서류 폴더가 없습니다: {DOCS_ROOT}")
-    if not runner.start(bool(body.get("download")), since):
+    mode = "sync" if body.get("mode") == "sync" else "batch"
+    if not runner.start(bool(body.get("download")), since, bool(body.get("ai")), mode):
         raise HTTPException(409, "이미 실행 중입니다")
     return JSONResponse({"started": True}, status_code=202)
+
+
+@app.get("/api/ai/estimate")
+def ai_estimate():
+    return {"estimate": runner.estimate()}
 
 
 @app.get("/api/runs/latest")

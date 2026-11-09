@@ -25,7 +25,8 @@ DOCS_ROOT="$HOME/Library/Mobile Documents/com~apple~CloudDocs/work" python3 pipe
 - 결과는 화면에 바로 표시된다: 판별 수, 새 파일, 개정(이전 판 → 새 판), 삭제, 판별 실패, iCloud 미다운로드.
 - 기준일: 이 날짜에 유효했던 판과 그 이후 판을 분석 대상으로 삼는다(기본 20260901).
 - 서버는 이 Mac(127.0.0.1)에서만 열리고, 다른 사이트에서 보낸 실행 요청은 거절한다.
-- 담보 판정(AI 정독)과 DB 갱신은 아직 버튼에 포함되지 않는다. Claude Code에서 4단계로 실행한다.
+- 웹앱(`webapp/`)에서 **AI 분석·새 기준일 DB 만들기**를 체크하면 분류표 부록 분리 → Claude API 정독·검증(배치 50% 할인) → 분류코드 채우기 → 담보 판정 → 새 기준일 스냅샷까지 이어서 돈다. 서버에 `ANTHROPIC_API_KEY` 환경변수가 있어야 하며, 체크하면 이번에 새로 분석할 묶음 수와 추정 비용이 먼저 표시된다. 본문이 바뀌지 않은 특약 묶음은 캐시를 써서 다시 분석하지 않는다.
+- 명령어로는 `python3 pipeline/build_snapshot.py --work work --db data/health_coverage_db.sqlite --mode batch`.
 
 ## 실행 순서 (명령어로 직접)
 

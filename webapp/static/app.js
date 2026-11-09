@@ -118,8 +118,18 @@ async function pollRun() {
   if (job.running && !timer) timer = setInterval(pollRun, 1500);
 }
 $("run").addEventListener("click", async () => {
-  try { await api("/api/runs", { method: "POST", body: JSON.stringify({ download: $("dl").checked, since: $("since").value.trim() }) }); pollRun(); }
+  try { await api("/api/runs", { method: "POST", body: JSON.stringify({ download: $("dl").checked, since: $("since").value.trim(), ai: $("ai").checked }) }); pollRun(); }
   catch (e) { $("run-state").textContent = e.message; }
+});
+
+$("ai").addEventListener("change", async e => {
+  const el = $("ai-est"); el.hidden = !e.target.checked; if (!e.target.checked) return;
+  el.textContent = "비용 추정 중…";
+  try {
+    const { estimate: x } = await api("/api/ai/estimate");
+    el.textContent = x ? `이번에 새로 분석할 특약 묶음 ${x["새로 분석"]}개 / 전체 ${x["묶음"]}개 · 추정 비용 약 $${x["추정 비용(USD, 배치 50%)"]} (배치 할인 적용, 근사치). 본문이 같은 묶음은 다시 분석하지 않습니다.`
+      : "특약 묶음이 아직 없습니다. 먼저 AI 없이 한 번 실행하면 추정할 수 있습니다.";
+  } catch (err) { el.textContent = "추정 실패: " + err.message; }
 });
 
 // ---------- 시작 ----------
